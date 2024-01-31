@@ -1,0 +1,162 @@
+#include <Servo.h>
+int ledverde = 3;
+int ledamarelo = 4;  // Adicionando um segundo LED no pino 13
+float LDR = A0;
+int valorLDR = 0; // leitura inicial
+int leitor; // criando uma variável que irá receber um valor
+Servo meuServo; // cria um objeto servo para controlar um servo motor
+int led1 = 12; // pino para o LED 1
+int led2 = 13; // pino para o LED 2
+int led3 = 10; // pino para o LED 3
+int led4 = 9;  // pino para o LED 4
+int led5 = 5;  // pino para o LED 5 (sensor de luminosidade)
+int buzzerPin = 8; // pino para o buzzer padrão (usado em outros lugares)
+int buzzerCampainhaPin = 6; // pino específico para o buzzer da campainha
+// pino para o sensor de luminosidade
+int botaoPin = A1; // pino para o botão
+int ledCampainha = 7; // pino para o LED da campainha
+unsigned long lastBuzzerTime = 0;
+unsigned long buzzerInterval = 500; // intervalo entre bips (em milissegundos)
+unsigned long servoMoveTime = 2000; // tempo máximo para o movimento do servo (em milissegundos)
+
+void setup() { 
+  
+  Serial.begin(9600);
+  pinMode(ledverde, OUTPUT);
+  pinMode(ledamarelo, OUTPUT);  // Configurando o novo LED
+  pinMode(LDR, INPUT);
+  pinMode(led1, OUTPUT); // configurando o pino do LED 1 como saída
+  pinMode(led2, OUTPUT); // configurando o pino do LED 2 como saída
+  pinMode(led3, OUTPUT); // configurando o pino do LED 3 como saída
+  pinMode(led4, OUTPUT); // configurando o pino do LED 4 como saída
+  pinMode(led5, OUTPUT); // configurando o pino do LED 5 como saída
+  pinMode(buzzerPin, OUTPUT); // configurando o pino do buzzer padrão como saída
+  pinMode(buzzerCampainhaPin, OUTPUT); // configurando o pino do buzzer da campainha como saída
+  // configurando o pino do sensor de luminosidade como entrada
+  pinMode(botaoPin, INPUT_PULLUP); // configurando o pino do botão como entrada com resistor pull-up
+  pinMode(ledCampainha, OUTPUT); // configurando o pino do LED da campainha como saída
+  meuServo.attach(11); // o pino 11 está conectado ao controle do servo
+  Serial.begin(9600); // setando a comunicação serial na velocidade 9600
+}
+
+void loop() {
+  valorLDR = analogRead(LDR);
+
+  // luz baixa
+  if (valorLDR < 100)
+  {
+    apagarLeds();
+    digitalWrite(ledverde, HIGH);
+  }
+  // luz media
+  if (valorLDR >= 300 && valorLDR < 450)
+  {
+    apagarLeds();
+    digitalWrite(ledamarelo, HIGH);  // Acendendo o segundo LED
+  }
+  if (valorLDR > 450)
+  {
+    apagarLeds();
+    digitalWrite(ledamarelo, HIGH);  // Acendendo o segundo LED
+  }
+  Serial.print(valorLDR);
+  
+  if (Serial.available()) { // esta estrutura evita o acionamento indevido dos dispositivos
+    leitor = Serial.read(); // armazenando a tecla pressionada na variável leitor
+    if (leitor == '1') { // se tecla 1 pressionada
+      digitalWrite(led1, !digitalRead(led1)); // alterando o estado do LED 1
+    }
+    if (leitor == '2') { // se tecla 2 pressionada
+      digitalWrite(led2, !digitalRead(led2)); // alterando o estado do LED 2
+    }
+    if (leitor == '3') { // se tecla 3 pressionada
+      preMoveServo(110); // função para aviso sonoro antes de mover o servo para 90 graus
+      moveServo(110); // move o servo para 90 graus
+    }
+    if (leitor == '4') { // se tecla 4 pressionada
+      preMoveServo(0); // função para aviso sonoro antes de mover o servo para 0 grau
+      moveServo(0); // move o servo para 0 grau
+    }
+  }
+
+  // Piscar LEDs alternadamente
+  digitalWrite(led3, HIGH);
+  delay(500); // ajuste a velocidade de acordo com a sua preferência
+  digitalWrite(led3, LOW);
+ 
+  delay(500); // ajuste a velocidade de acordo com a sua preferência
+
+  digitalWrite(led4, HIGH);
+  delay(500); // ajuste a velocidade de acordo com a sua preferência
+  digitalWrite(led4, LOW);
+
+  delay(500); // ajuste a velocidade de acordo com a sua preferência
+
+  // Verifica o estado do botão
+  if (digitalRead(botaoPin) == LOW) { // botão pressionado (LOW quando pressionado devido ao resistor pull-up)
+    acionarCampainha();
+  } else {
+    // Se o botão não estiver pressionado, desliga o buzzer da campainha e apaga o LED da campainha
+    noTone(buzzerCampainhaPin);
+    digitalWrite(ledCampainha, LOW);
+  }
+}
+
+void moveServo(int position) {
+  int currentPos = meuServo.read();
+  int delayStep = 10; // Ajuste este valor para controlar a velocidade do movimento
+  unsigned long startTime = millis();
+
+  if (currentPos < position) {
+    while (currentPos < position && millis() - startTime < servoMoveTime) {
+      currentPos += 1;
+      meuServo.write(currentPos);
+      delay(delayStep);
+    }
+  } else {
+    while (currentPos > position && millis() - startTime < servoMoveTime) {
+      currentPos -= 1;
+      meuServo.write(currentPos);
+      delay(delayStep);
+    }
+  }
+}
+
+void preMoveServo(int targetPos) {
+  // Aviso sonoro antes de mover o servo
+  unsigned long startTime = millis();
+  while (meuServo.read() != targetPos && millis() - startTime < servoMoveTime) {
+    playBuzzer(); // aciona o som do buzzer padrão
+    delay(200); // ajuste a velocidade de acordo com a sua preferência
+  }
+}
+
+void playBuzzer() {
+  // Produz o som do buzzer padrão (ajuste a frequência conforme necessário)
+  tone(buzzerPin, 1000, 50); // 1000 Hz, 50 ms (ajuste conforme necessário)
+  delay(50); // aguarda um tempo entre os bips
+  noTone(buzzerPin); // desliga o buzzer padrão
+}
+
+
+void acionarCampainha() {
+  digitalWrite(ledCampainha, HIGH); // acende o LED da campainha
+  playBuzzerCampainha(); // toca o buzzer da campainha
+}
+
+void playBuzzerCampainha() {
+  // Produz o som "din don" da campainha enquanto o botão estiver pressionado
+  tone(buzzerCampainhaPin, 1000); // Tom "din"
+  delay(500); // Mantém o primeiro tom por 500 ms
+  noTone(buzzerCampainhaPin); // Desliga o som por um curto intervalo
+  delay(100); // Pequeno intervalo entre os tons
+  tone(buzzerCampainhaPin, 1200); // Tom "don"
+  delay(500); // Mantém o segundo tom por 500 ms
+  noTone(buzzerCampainhaPin); // Desliga o som
+}
+
+void apagarLeds()
+{
+  digitalWrite(ledverde, LOW);
+  digitalWrite(ledamarelo, LOW);  // Apagando o segundo LED
+}
