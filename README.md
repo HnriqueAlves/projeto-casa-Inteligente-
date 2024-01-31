@@ -4,7 +4,7 @@ Este projeto propõe a criação de uma casa inteligente utilizando a plataforma
 
 ### Imagens do Projeto
 
-### ==> [Tinkercad]
+### ==> [https://www.tinkercad.com/things/csTSDufU8j1-ingenious-kup-jarv/editel?returnTo=%2Fdashboard]
 
 
 ### Integrantes do Grupo 
